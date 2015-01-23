@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace GPS_Application
 {
-    class Program
+    class GpsTrack
     {
-        static void Main(string[] args)
-        {
-            GpsLogParser test = new GpsLogParser();
-            test.ReadGpsLog();
-        }
     }
+
+
+
+
+
 }
