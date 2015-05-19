@@ -7,9 +7,15 @@ using System.Threading.Tasks;
 
 namespace GPS_Application
 {
-    class GpsLogParser
+    struct DataPoint
+    {
+        DateTime time;
+    }
+
+    public class GpsLogParser
     {
         string fileName;
+        GpsTrack track;
 
         public GpsLogParser()
         {
@@ -25,64 +31,120 @@ namespace GPS_Application
         {
             using (StreamReader sr = File.OpenText(fileName))
             {
+                GpsPoint point = null;
+                GpsData data;
                 string s = String.Empty;
+                double currentTime = 0;  // Note, can only use the time, not date, because date is not included in GPGGA values.  Assume data point is the same if time is the same, independent of date
+
                 while ((s = sr.ReadLine()) != null)
                 {
-                    //TODO: handle checksum
-                    string[] sa = s.Split(',');
-                    switch (sa[0])
+                    data = ParseLine(s);
+
+                    if (data == null)
+                        continue;
+
+                    if (typeof(GpsDataTimeLocation).IsAssignableFrom(data.GetType()) && ((GpsDataTimeLocation)data).Time != currentTime)
                     {
-                        case "$ADVER":
-                            ReadADVER(sa);
-                            break;
-                        case "$GPRMC": 
-                            ReadGPRMC(sa);
-                            break;
-                        case "$GPGGA": 
-                            ReadGPGGA(sa);
-                            break;
-                        case "$GPGSA": 
-                            ReadGPGSA(sa);
-                            break;
-                        case "$GPGSV": 
-                            ReadGPGSV(sa);
-                            break;
-                        case "$GPGMC": 
-                            ReadGPGMC(sa);
-                            break;
-                        case "$GPVTG": 
-                            ReadGPVTG(sa);
-                            break;
-                        default:
-                            // currently have other wierd data in some files, parhaps from the 'flag' button.
-                            // TODO: Understand mysterious data
-                            int sdf = 34;
-                            break;
-                            // throw new Exception("New, unhandled data type encountered in GPS log.\n" + s);
+                        point = new GpsPoint((GpsDataTimeLocation)data);
+
+                        // old point is finished, add to the list and start a new one
+                        if (point != null)
+                        {
+                            if (track == null)
+                                track = new GpsTrack((GpsDataTimeLocation)data);
+
+                            track.AddPoint(point);
+                        }
+
+                        
+
+                        currentTime = ((GpsDataTimeLocation)data).Time;
                     }
+                    point.AddData(data);
                 }
             }
 
         }
 
-        void ReadADVER(string[] sa) { }
-        void ReadGPRMC(string[] sa) 
+        public static GpsData ParseLine(string s)
         {
-            GprmcData.FromStringArray(sa);
+            GpsData data;
+
+            string[] checkSumSplit = s.Split('*');
+            if (!Util.VerifyChecksum(checkSumSplit))
+                return null;
+
+            string[] gpsDataString = checkSumSplit[0].Split(',');
+            switch (gpsDataString[0])
+            {
+                case "$ADVER":
+                    data = null;
+                    break;
+                case "$GPRMC":
+                    data = new GprmcData(gpsDataString);
+                    break;
+                case "$GPGGA":
+                    data = new GpggaData(gpsDataString);
+                    break;
+                case "$GPGSA":
+                    data = new GpgsaData(gpsDataString);
+                    break;
+                case "$GPGSV":
+                    data = new GpgsvData(gpsDataString);
+                    break;
+                case "$GPVTG":
+                    data = new GpvtgData(gpsDataString);
+                    break;
+                default:
+                    data = null;
+                    // currently have other weird data in some files, perhaps from the 'flag' button.
+                    // TODO: Understand mysterious data
+                    int sdf = 34;
+                    //break;
+                    throw new Exception("New, unhandled data type encountered in GPS log.\n" + s);
+            }
+            return data;
         }
-        void ReadGPGGA(string[] sa) 
-        {
-            GpggaData.FromStringArray(sa);       
-        }
-        void ReadGPGSA(string[] sa) { }
-        void ReadGPGSV(string[] sa) { }
-        void ReadGPGMC(string[] sa) { }
-        void ReadGPVTG(string[] sa) { }
     }
 
     #region Common Utilities
-    public class Util
+    public static class Util
     {
+        public static bool VerifyChecksum(string[] checkSumString)
+        {
+            if (checkSumString.Length < 2)
+                return false;
+
+            //byte givenChecksum;
+            //byte.TryParse(checkSumString[1], System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out givenChecksum);
+            //givenChecksum = byte.Parse(checkSumString[1]);
+            //if (givenChecksum != Util.CalculateCheckSum(checkSumString[0]))
+            if (checkSumString[1] != Util.CalculateCheckSum(checkSumString[0]))
+            {
+                return false;
+
+                //TODO: Perhaps log invalid lines?
+                throw new Exception("Discrepency in checksum");
+            }
+
+            return true;
+        }
+
+        public static string CalculateCheckSum(string source)
+        {
+            source = source.TrimStart('$');
+            byte checksum = 0;
+            byte[] bytes = Encoding.ASCII.GetBytes(source);
+
+            for (int i = 0; i < bytes.Length; i++)
+                checksum = (byte)(checksum ^ bytes[i]);
+
+
+            /// TODO: Total hack job
+            //return byte.Parse(Convert.ToString(checksum, 16));
+            return checksum.ToString("X2");// string.Format("X2", Convert.ToString(checksum, 16));
+        }
+
         public static DateTime DateTimeFromString(string date, string timesStr)
         {
             string[] times = timesStr.Split(new char[] { '.' }, 2);
@@ -104,8 +166,24 @@ namespace GPS_Application
                 Convert.ToInt16(hour), Convert.ToInt16(min), Convert.ToInt16(sec), Convert.ToInt16(milli), DateTimeKind.Utc);
 
         }
+
+        public static double? NullableDouble(string input)
+        {
+            return string.IsNullOrEmpty(input) ? (double?)null : Convert.ToDouble(input);
+        }
+
+        public static int? NullableInt(string input)
+        {
+            return string.IsNullOrEmpty(input) ? (int?)null : Convert.ToInt32(input);
+        }
+
+        //public static object ConvertEnum(Type type, string value)
+        //{
+        //    return Enum.GetValues(typeof(type)).Cast<type>().FirstOrDefault(a => (char)a == value[0]);           
+        //}
     }
-    struct Latitude
+    
+    public struct Latitude
     {
         enum Direction { Unknown, North = 'N', South = 'S' }
         double Degrees;
@@ -118,161 +196,66 @@ namespace GPS_Application
         /// <param name="location">Latitude position in degrees</param>
         /// <param name="direction">character representation o North/South hemisphere</param>
         /// <returns>Latitude struct</returns>
-        public static Latitude FromStrings(string location, string direction)
+        public Latitude(string location, string direction)
         {
-            Latitude lat = new Latitude();
             string[] loc = location.Split(new char[] { '.' }, 2);
 
-            lat.Degrees = Convert.ToDouble(loc[0].Substring(0, 2));
-            if (lat.Degrees > 90 || lat.Degrees < -90) throw new Exception("Invalid Latitude value: " + lat.Degrees);
+            Degrees = Convert.ToDouble(loc[0].Substring(0, 2));
+            if (Degrees > 90 || Degrees < -90) throw new Exception("Invalid Latitude value: " + Degrees);
 
-            lat.Minutes = Convert.ToDouble(loc[0].Substring(2, loc[0].Length - 2)) + Convert.ToDouble(loc[1]) / Math.Pow(10, loc[1].Length);
-            if (lat.Minutes < 0 || lat.Minutes > 60) throw new Exception("Latitude minutes invalid value: " + lat.Minutes);
+            Minutes = Convert.ToDouble(loc[0].Substring(2, loc[0].Length - 2)) + Convert.ToDouble(loc[1]) / Math.Pow(10, loc[1].Length);
+            if (Minutes < 0 || Minutes > 60) throw new Exception("Latitude minutes invalid value: " + Minutes);
 
-            lat.Hemisphere = Enum.GetValues(typeof(Direction)).Cast<Direction>().FirstOrDefault(a => (char)a == direction[0]);
+            Hemisphere = Enum.GetValues(typeof(Direction)).Cast<Direction>().FirstOrDefault(a => (char)a == direction[0]);
+        }
 
-            return lat;
+        public override string ToString()
+        {
+            return Degrees.ToString("00") + Minutes.ToString("00.0000") + "," + (char)Hemisphere;
+        }
+
+        public bool Equals(Latitude lat)
+        {
+            if (lat.Degrees != this.Degrees || lat.Hemisphere != this.Hemisphere || lat.Minutes != this.Minutes)
+                return false;
+            return true;
         }
     }
 
-    struct Longitude
+    public struct Longitude
     {
         enum Direction { Unknown, West = 'W', East = 'E' }
         double Degrees;
         double Minutes;
         Direction Hemisphere;
 
-        public static Longitude FromStrings(string location, string direction)
+        public Longitude(string location, string direction)
         {
-            Longitude lon = new Longitude();
             string[] loc = location.Split(new char[] { '.' }, 2);
 
-            lon.Degrees = Convert.ToDouble(loc[0].Substring(0, 3));
-            if (lon.Degrees > 90 || lon.Degrees < -90) 
-                throw new Exception("Invalid Longitude value: " + lon.Degrees);
+            Degrees = Convert.ToDouble(loc[0].Substring(0, 3));
+            if (Degrees > 90 || Degrees < -90) 
+                throw new Exception("Invalid Longitude value: " + Degrees);
 
-            lon.Minutes = Convert.ToDouble(loc[0].Substring(3, loc[0].Length - 3)) + Convert.ToDouble(loc[1]) / Math.Pow(10, loc[1].Length);
-            if (lon.Minutes < 0 || lon.Minutes > 60) 
-                throw new Exception("Longitude minutes invalid value: " + lon.Minutes);
+            Minutes = Convert.ToDouble(loc[0].Substring(3, loc[0].Length - 3)) + Convert.ToDouble(loc[1]) / Math.Pow(10, loc[1].Length);
+            if (Minutes < 0 || Minutes > 60) 
+                throw new Exception("Longitude minutes invalid value: " + Minutes);
 
-            lon.Hemisphere = Enum.GetValues(typeof(Direction)).Cast<Direction>().FirstOrDefault(a => (char)a == direction[0]);
-
-            return lon;
+            Hemisphere = Enum.GetValues(typeof(Direction)).Cast<Direction>().FirstOrDefault(a => (char)a == direction[0]);
         }
-    }
 
-    #endregion
-    #region GPRMC
-    struct GprmcData
-    {
-        struct MagneticVariation
+        public override string ToString()
         {
-            enum Direction { Unknown, North = 'N', South = 'S', East = 'E', West = 'W' }
-
-            double degrees;
-            Direction direction;
-
-            public static MagneticVariation FromStrings(string deg, string direct)
-            {
-                MagneticVariation mv = new MagneticVariation();
-
-                // TODO: figure out a way to output empty string for Unknown direction
-                var x = Convert.ChangeType(mv.direction, mv.direction.GetTypeCode());
-
-                if (deg == "" && direct == "")
-                    return mv;
-
-                mv.degrees = Convert.ToDouble(deg);
-
-                mv.direction = Enum.GetValues(typeof(Direction)).Cast<Direction>().FirstOrDefault(a => (char)a == direct[0]);
-
-                return mv;
-            }
+            return Degrees.ToString("000") + Minutes.ToString("00.0000") + "," + (char)Hemisphere;
         }
-        enum NavigationReceiverWarning { None, Warning = 'V', ValidPosition = 'A' }
 
-        NavigationReceiverWarning warning;
-        DateTime dateTime;
-        Latitude latitude;
-        Longitude longitude;
-        double speedOverGroundKnots;
-        double courseMadeGoodDegreesTrue;
-        MagneticVariation magneticVariation;
-
-        public static GprmcData FromStringArray(string[] sa)
+        public bool Equals(Longitude lon)
         {
-            GprmcData data = new GprmcData();
-
-            string times = sa[1];
-            string navWarning = sa[2];
-            data.latitude = Latitude.FromStrings(sa[3], sa[4]);
-            data.longitude = Longitude.FromStrings(sa[5], sa[6]);
-            data.speedOverGroundKnots = Convert.ToDouble(sa[7]);
-            data.courseMadeGoodDegreesTrue = Convert.ToDouble(sa[8]);
-            string date = sa[9];
-
-            data.warning = Enum.GetValues(typeof(NavigationReceiverWarning)).Cast<NavigationReceiverWarning>().FirstOrDefault(a => (char)a == navWarning[0]);           
-            data.magneticVariation = MagneticVariation.FromStrings(sa[10], sa[11]);
-            data.dateTime = Util.DateTimeFromString(date, times);
-            
-            return data;
+            if (lon.Degrees != this.Degrees || lon.Hemisphere != this.Hemisphere || lon.Minutes != this.Minutes)
+                return false;
+            return true;
         }
     }
     #endregion
 
-
-    #region GPGGA
-    struct GpggaData
-    {
-        enum FixQuality { Invalid, GpsFix, DGpsFix }
-        enum Units {Meters}
-        struct Altitude
-        {
-            double altitude;
-            Units units;
-
-            public static Altitude FromStrings(string altitude, string units)
-            {
-                Altitude alt = new Altitude();
-                Double.TryParse(altitude, out alt.altitude);
-
-                alt.units = Enum.GetValues(typeof(Units)).Cast<Units>().FirstOrDefault(a => (char)a == units[0]);           
-
-                return alt;
-            }
-        }
-
-        Longitude longitude;
-        Latitude latitude;
-        DateTime dateTime;
-        FixQuality qualityIndicator;
-        int numberOfSatellites;
-        double horizontalDilutionOfPrecision;
-        Altitude altitudeAboveSeaLevel, altitudeAboveGeodial;
-        double ageOfDifferentialData;
-        int idOfDifferentialStation;
-
-        public static GpggaData FromStringArray(string[] sa)
-        {
-            GpggaData data = new GpggaData();
-
-            string time = sa[1];
-            data.latitude = Latitude.FromStrings(sa[2], sa[3]);
-            data.longitude = Longitude.FromStrings(sa[4], sa[5]);
-            Enum.TryParse<FixQuality>(sa[6], out data.qualityIndicator);
-            Int32.TryParse(sa[7], out data.numberOfSatellites);
-            Double.TryParse(sa[8], out data.horizontalDilutionOfPrecision);
-            data.altitudeAboveSeaLevel = Altitude.FromStrings(sa[9], sa[10]);
-            data.altitudeAboveGeodial = Altitude.FromStrings(sa[11], sa[12]);
-            Double.TryParse(sa[13], out data.ageOfDifferentialData);
-            Int32.TryParse(sa[14], out data.idOfDifferentialStation);
-
-            // use a fake data since none is provided.  Becomes 01.01.2000
-            data.dateTime = Util.DateTimeFromString("010100", time);
-            return data;
-
-        }
-    }
-
-    #endregion
 }

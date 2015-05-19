@@ -13,5 +13,7 @@ namespace GPS_Application
             GpsLogParser test = new GpsLogParser();
             test.ReadGpsLog();
         }
+
+        
     }
 }
