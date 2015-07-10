@@ -69,7 +69,6 @@ namespace GPS_Applicaion_Test
             using (StreamReader sr = File.OpenText(fileName))
             {
                 string s = String.Empty;
-                DateTime currentTime = new DateTime();  // Note, can only use the time, not date, because date is not included in GPGGA values.  Assume data point is the same if time is the same, independent of date
                 GpsData data;
 
                 while ((s = sr.ReadLine()) != null)

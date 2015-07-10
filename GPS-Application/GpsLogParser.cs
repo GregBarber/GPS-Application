@@ -5,29 +5,22 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GPS_Application
-{
-    struct DataPoint
-    {
-        DateTime time;
-    }
 
+namespace GPS_Application
+{   
+    
     public class GpsLogParser
     {
         string fileName;
         GpsTrack track;
 
-        public GpsLogParser()
-        {
-            this.fileName = "c:\\users\\greg\\documents\\visual studio 2013\\Projects\\GPS-Application\\GPS-Application\\Reference Docs\\GPS_20130430_030350.log";
-        }
 
         public GpsLogParser(string fileName)
         {
             this.fileName = fileName;
         }
 
-        public void ReadGpsLog()
+        public GpsTrack ReadGpsLog()
         {
             using (StreamReader sr = File.OpenText(fileName))
             {
@@ -43,6 +36,7 @@ namespace GPS_Application
                     if (data == null)
                         continue;
 
+                    // if the new data is at a different time than the previous then it is a new data point location
                     if (typeof(GpsDataTimeLocation).IsAssignableFrom(data.GetType()) && ((GpsDataTimeLocation)data).Time != currentTime)
                     {
                         point = new GpsPoint((GpsDataTimeLocation)data);
@@ -56,14 +50,13 @@ namespace GPS_Application
                             track.AddPoint(point);
                         }
 
-                        
-
                         currentTime = ((GpsDataTimeLocation)data).Time;
                     }
                     point.AddData(data);
                 }
+                track.AddPoint(point);
             }
-
+            return track;
         }
 
         public static GpsData ParseLine(string s)
@@ -99,7 +92,6 @@ namespace GPS_Application
                     data = null;
                     // currently have other weird data in some files, perhaps from the 'flag' button.
                     // TODO: Understand mysterious data
-                    int sdf = 34;
                     //break;
                     throw new Exception("New, unhandled data type encountered in GPS log.\n" + s);
             }
@@ -177,10 +169,26 @@ namespace GPS_Application
             return string.IsNullOrEmpty(input) ? (int?)null : Convert.ToInt32(input);
         }
 
-        //public static object ConvertEnum(Type type, string value)
-        //{
-        //    return Enum.GetValues(typeof(type)).Cast<type>().FirstOrDefault(a => (char)a == value[0]);           
-        //}
+        public static double DegToRad(double degrees)
+        {
+            return degrees * Math.PI / 180.0;
+        }
+
+        public static void ValueToDegreesMinutes(double value, out double degrees, out double minutes)
+        {
+            degrees = Math.Floor(value);
+            minutes = DegDecimalToMinutes(value - degrees);
+        }
+
+        public static double DegDecimalToMinutes(double degreeDecimal)
+        {
+            return degreeDecimal * 60.0;
+        }
+
+        public static double DegMinutesToValue(double degrees, double minutes)
+        {
+            return degrees + minutes / 60.0;
+        }
     }
     
     public struct Latitude
@@ -190,11 +198,30 @@ namespace GPS_Application
         double Minutes;
         Direction Hemisphere;
 
+
+        public Latitude(double value)
+        {
+            double deg, min;
+            Util.ValueToDegreesMinutes(value, out deg, out min);
+
+            this.Degrees = deg;
+            this.Minutes = min;
+
+            if (this.Degrees >= 0)
+                this.Hemisphere = Direction.North;
+            else
+                this.Hemisphere = Direction.South;
+        }
+
+        public Latitude(double degrees, double minutes) : this(Util.DegMinutesToValue(degrees, minutes))
+        {
+        }
+
         /// <summary>
         /// 
         /// </summary>
         /// <param name="location">Latitude position in degrees</param>
-        /// <param name="direction">character representation o North/South hemisphere</param>
+        /// <param name="direction">character representation of North/South hemisphere</param>
         /// <returns>Latitude struct</returns>
         public Latitude(string location, string direction)
         {
@@ -220,6 +247,9 @@ namespace GPS_Application
                 return false;
             return true;
         }
+
+        public double Value
+        { get { return this.Degrees + this.Minutes / 60.0; } }
     }
 
     public struct Longitude
@@ -229,12 +259,31 @@ namespace GPS_Application
         double Minutes;
         Direction Hemisphere;
 
+        public Longitude(double value)
+        {
+            double deg, min;
+            Util.ValueToDegreesMinutes(value, out deg, out min);
+
+            this.Degrees = deg;
+            this.Minutes = min;
+
+            if (this.Degrees >= 0)
+                this.Hemisphere = Direction.East;
+            else
+                this.Hemisphere = Direction.West;
+        }
+
+        public Longitude(double degrees, double minutes)
+            : this(Util.DegMinutesToValue(degrees, minutes))
+        {
+        }
+
         public Longitude(string location, string direction)
         {
             string[] loc = location.Split(new char[] { '.' }, 2);
 
             Degrees = Convert.ToDouble(loc[0].Substring(0, 3));
-            if (Degrees > 90 || Degrees < -90) 
+            if (Degrees > 180 || Degrees < -180) 
                 throw new Exception("Invalid Longitude value: " + Degrees);
 
             Minutes = Convert.ToDouble(loc[0].Substring(3, loc[0].Length - 3)) + Convert.ToDouble(loc[1]) / Math.Pow(10, loc[1].Length);
@@ -255,6 +304,9 @@ namespace GPS_Application
                 return false;
             return true;
         }
+
+        public double Value
+        { get { return this.Degrees + this.Minutes/60.0; } }
     }
     #endregion
 

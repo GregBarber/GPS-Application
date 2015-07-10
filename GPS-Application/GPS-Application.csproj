@@ -47,14 +47,19 @@
     <Compile Include="GpsTrack.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="type.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="Reference Docs\GPS_20130430_030350mod.log" />
+    <None Include="Reference Docs\GPS_20130430_030350mod bad dates removed.log" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Reference Docs\GPS NMEA 0183 Meanings.txt" />
+    <Content Include="Reference Docs\ShortGPS.txt">
+      <SubType>Component</SubType>
+    </Content>
+    <Content Include="Screenshots\ApplySimpleFilter.jpg" />
+    <Content Include="Screenshots\DisplayFilteredData.jpg" />
+    <Content Include="Screenshots\InitialLogLoaded.jpg" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

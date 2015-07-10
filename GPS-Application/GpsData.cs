@@ -6,11 +6,29 @@ using System.Threading.Tasks;
 
 namespace GPS_Application
 {
+    /// <summary>
+    /// Provides reading various NMEA GPS data strings from a file as well as outputting NMEA formatted data
+    /// </summary>
+    /// <remarks>There are numerous data types defined in NMEA formats.  This deals only with those that I have encountered
+    /// in my GPS logs.  Much of the data is parsed and stored but is not used in analysis yet.
+    /// </remarks>
     public abstract class GpsData
     {
+        /// <summary>
+        /// NMEA Data type identifier
+        /// </summary>
+        protected string head;
+
+        /// <summary>
+        /// NMEA string representation of GPS data
+        /// </summary>
+        /// <returns></returns>
         public abstract override string ToString();
     }
 
+    /// <summary>
+    /// GPS data that has been etended to include time and location
+    /// </summary>
     public abstract class GpsDataTimeLocation : GpsData
     {
         public abstract double Time { get; }
@@ -20,6 +38,9 @@ namespace GPS_Application
         public abstract Longitude Longitude { get; }
     }
 
+    /// <summary>
+    /// GPS data that adds a date to time and location
+    /// </summary>
     public abstract class GpsDataDate : GpsDataTimeLocation
     {
         public abstract int Date { get; }
@@ -30,6 +51,14 @@ namespace GPS_Application
     #endregion
 
     #region GPRMC
+    /// <summary>
+    /// Recommended minimum specific GPS/TRANSIT data
+    /// </summary>
+    /// <remarks>
+    /// Includes the most basic output for a single GPS reading, primarially time and location.  Also includes fields verifying
+    /// the signal is vaid, speed and direction of travel.
+    /// It is the only data type that includes the calendar date of the reading.
+    /// </remarks>
     public class GprmcData : GpsDataDate
     {
         #region Supporting Data Structures
@@ -67,7 +96,6 @@ namespace GPS_Application
         enum NavigationReceiverWarning { None, Warning = 'V', ValidPosition = 'A' }
         #endregion
 
-        string head;
         NavigationReceiverWarning warning;
         DateTime dateTime;
         Latitude latitude;
@@ -133,6 +161,12 @@ namespace GPS_Application
     #endregion
 
     #region GPGGA
+    /// <summary>
+    /// Global Positioning System Fix Data
+    /// </summary>
+    /// <remarks>
+    /// 
+    /// </remarks>
     public class GpggaData : GpsDataTimeLocation
     {
         #region Supporting Data Structures
@@ -156,7 +190,6 @@ namespace GPS_Application
         }
         #endregion
 
-        string head;
         Longitude longitude;
         Latitude latitude;
         DateTime dateTime;
@@ -215,6 +248,9 @@ namespace GPS_Application
     #endregion
 
     #region GPGSA
+    /// <summary>
+    /// GPS DOP (dilution of precision) and Active Satellites
+    /// </summary>
     public class GpgsaData : GpsData
     {
         #region Supporting Data Structures
@@ -222,7 +258,6 @@ namespace GPS_Application
         enum ModeType { Unknown, FixNotAvailable = 1, TwoD = 2, ThreeD = 3 }
         #endregion
 
-        string head;
         ModeSetting modeSetting;
         ModeType modeType;
         int?[] satellitePRN;
@@ -246,9 +281,9 @@ namespace GPS_Application
 
         public override string ToString()
         {
-            string prns = string.Format("{0:00}", satellitePRN[0]); //.ToString();
+            string prns = string.Format("{0:00}", satellitePRN[0]);
             for (int i = 1; i < satellitePRN.Length; i++)
-                prns += "," + string.Format("{0:00}", satellitePRN[i]); // satellitePRN[i].ToString();
+                prns += "," + string.Format("{0:00}", satellitePRN[i]);
 
             string data = string.Format("{0},{1},{2},{3},{4:0.0},{5:0.0},{6:0.0}",
                     head, (char)modeSetting, (int)modeType, prns, positionDilutionOfPrecision,
@@ -260,6 +295,10 @@ namespace GPS_Application
     #endregion
 
     #region GPGSV
+    /// <summary>
+    /// GPS Satellites in View
+    /// </summary>
+    /// <remarks>Details about the exact satellites used in fix</remarks>
     public class GpgsvData : GpsData
     {
         #region Supporting Data Structures
@@ -286,7 +325,6 @@ namespace GPS_Application
         }
         #endregion
 
-        string head;
         int totalMessagesInCycle;
         int messageNumber;
         int totalSatellitesInView;
@@ -324,9 +362,11 @@ namespace GPS_Application
     #endregion
 
     #region GPVTG
+    /// <summary>
+    /// Track Made Good and Ground Speed
+    /// </summary>
     public class GpvtgData : GpsData
     {
-        string head;
         char trueCourseMark, magneticCourseMark, knotsSpeedMark, kphSpeedMark;
         double? trueCourseOverGroundDeg;
         double? magneticCourseDeg;
@@ -372,7 +412,7 @@ namespace GPS_Application
         /// Formats the correct number of digits (sig figs perhaps?) for the value
         /// </summary>
         /// <remarks>This is a inelegant workaround so the input data matches exactly the output.  There is not a consistent number of digits used for this data.  Perhaps is it connected to the accuracy of the 
-        /// device where an extra digit is used only if it is known to be 0.  Wouldl like to extract the format of the input to apply to the output</remarks>
+        /// device where an extra digit is used only if it is known to be 0.  Would like to extract the format of the input to apply to the output</remarks>
         /// <param name="num">Number of digits</param>
         /// <returns>Format string</returns>
         string Digits(int num)

@@ -10,7 +10,9 @@ namespace GPS_Application
     {
         static void Main(string[] args)
         {
-            GpsLogParser test = new GpsLogParser();
+            string fileName = "c:\\users\\greg\\documents\\visual studio 2013\\Projects\\GPS-Application\\GPS-Application\\Reference Docs\\GPS_20130430_030350.log";
+
+            GpsLogParser test = new GpsLogParser(fileName);
             test.ReadGpsLog();
         }
 

@@ -17,7 +17,6 @@ $GPRMC - Recommended Minimum Specific GPS/TRANSIT Data
 $GPGGA - Global Positioning System Fix Data
 $GPGSA - GPS DOP and Active Satellites
 $GPGSV - GPS Satellites in View
-$GPRMC - Recommended Minimum Specific GPS/TRANSIT Data
 $GPVTG - Track Made Good and Ground Speed
 
 ------------------------------------
