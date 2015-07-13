@@ -78,12 +78,12 @@ namespace MapViewer
            
             row.Cells[Display.Index].Value = false;
             row.Cells[displayFormat.Index].Value = "Edit";
-            row.Cells[startTime.Index].Value = trackData.Track.StartDate;
-            row.Cells[endTime.Index].Value = trackData.Track.EndDate;
-            row.Cells[minLatitude.Index].Value = trackData.Track.MinLatitude;
-            row.Cells[maxLatitude.Index].Value = trackData.Track.MaxLatitude;
-            row.Cells[minLongitude.Index].Value = trackData.Track.MinLongitude;
-            row.Cells[maxLongitude.Index].Value = trackData.Track.MaxLongitude;
+            row.Cells[startTime.Index].Value = trackData.Track.StartPretty;
+            row.Cells[endTime.Index].Value = trackData.Track.EndPretty;
+            row.Cells[minLatitude.Index].Value = trackData.Track.MinLatitudePretty;
+            row.Cells[maxLatitude.Index].Value = trackData.Track.MaxLatitudePretty;
+            row.Cells[minLongitude.Index].Value = trackData.Track.MinLongitudePretty;
+            row.Cells[maxLongitude.Index].Value = trackData.Track.MaxLongitudePretty;
 
             row.Tag = trackData;
  

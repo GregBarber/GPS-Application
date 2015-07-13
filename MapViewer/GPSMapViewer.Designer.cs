@@ -234,7 +234,7 @@
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "mainForm";
-            this.Text = "Form1";
+            this.Text = "GPS Application - Map Viewer";
             ((System.ComponentModel.ISupportInitialize)(this.tracksGridView)).EndInit();
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();

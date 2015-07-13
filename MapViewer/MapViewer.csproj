@@ -53,11 +53,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Form1.cs">
+    <Compile Include="GPSMapViewer.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Form1.Designer.cs">
-      <DependentUpon>Form1.cs</DependentUpon>
+    <Compile Include="GPSMapViewer.Designer.cs">
+      <DependentUpon>GPSMapViewer.cs</DependentUpon>
     </Compile>
     <Compile Include="Markers.cs">
       <SubType>Form</SubType>
@@ -73,8 +73,8 @@
     <Compile Include="TimeDistanceFilterForm.Designer.cs">
       <DependentUpon>TimeDistanceFilterForm.cs</DependentUpon>
     </Compile>
-    <EmbeddedResource Include="Form1.resx">
-      <DependentUpon>Form1.cs</DependentUpon>
+    <EmbeddedResource Include="GPSMapViewer.resx">
+      <DependentUpon>GPSMapViewer.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Markers.resx">
       <DependentUpon>Markers.cs</DependentUpon>

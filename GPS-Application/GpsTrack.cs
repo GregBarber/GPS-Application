@@ -62,6 +62,10 @@ namespace GPS_Application
             return true;
         }
 
+        /// <summary>
+        /// Adjust parameters specific to this track when new data is entered.  Adjusts values for time span and location
+        /// </summary>
+        /// <param name="data">New data being added</param>
         private void AdjustForInput(GpsPoint data)
         {
             if (data.Time != 0)
@@ -140,12 +144,27 @@ namespace GPS_Application
 
         public double MaxLongitude
         { get { return this.maxLongitude; } }
+
+        #region Formatted Properties
+        public string StartPretty
+        { get { return DateTime.ParseExact(startDate.ToString() + " " + startTime.ToString("000000"), "ddMMyy hhmmss", System.Globalization.CultureInfo.InvariantCulture).ToString(); } }
+
+        public string EndPretty
+        { get { return DateTime.ParseExact(endDate.ToString() + " " + endTime.ToString("000000"), "ddMMyy hhmmss", System.Globalization.CultureInfo.InvariantCulture).ToString(); } }
+
+        public string MinLatitudePretty
+        { get { return this.minLatitude.ToString("0.000"); } }
+
+        public string MaxLatitudePretty
+        { get { return this.maxLatitude.ToString("0.000"); } }
+
+        public string MinLongitudePretty
+        { get { return this.minLongitude.ToString("0.000"); } }
+
+        public string MaxLongitudePretty
+        { get { return this.maxLongitude.ToString("0.000"); } }
+        #endregion
         #endregion
 
     }
-
-
-
-
-
 }
